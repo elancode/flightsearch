@@ -4,6 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "description": "itsadeal.ai — constraint-based flight search UI (query builder + results directions)",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
