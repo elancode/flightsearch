@@ -20,13 +20,13 @@ import random
 import sys
 import threading
 import time
+import urllib.error
 import urllib.parse
+import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Any, Optional
-
-import requests
+from typing import Optional
 
 # ---------------------------------------------------------------------------
 # Constraint schema (this is the product spec)
@@ -197,22 +197,33 @@ class DuffelProvider:
             time.sleep(self.sleep_s)
         url = (f"{self.BASE}/air/offer_requests"
                f"?return_offers=true&supplier_timeout={self.supplier_timeout_ms}")
-        r = requests.post(url, json=body, timeout=90, headers={
-            "Authorization": f"Bearer {self.token}",
-            "Duffel-Version": "v2",
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "Accept-Encoding": "gzip",
-        })
+        # Stdlib urllib (no third-party deps) so the serverless bundle needs
+        # nothing pip-installed. No Accept-Encoding: gzip — keep the response
+        # plain so we don't have to decompress.
+        req = urllib.request.Request(
+            url, data=json.dumps(body).encode(), method="POST", headers={
+                "Authorization": f"Bearer {self.token}",
+                "Duffel-Version": "v2",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+            })
         with self._lock:
             self.calls_made += 1
-        if r.status_code >= 400:
-            print(f"    ! Duffel {r.status_code}: {r.text[:300]}",
-                  file=sys.stderr)
+        try:
+            with urllib.request.urlopen(req, timeout=90) as resp:
+                data = json.loads(resp.read())
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode("utf-8", "replace")[:300]
+            print(f"    ! Duffel {e.code}: {detail}", file=sys.stderr)
             with self._lock:
                 self._cache[key] = []
             return []
-        offers = self._parse(r.json(), leg_indices)
+        except urllib.error.URLError as e:
+            print(f"    ! Duffel request failed: {e}", file=sys.stderr)
+            with self._lock:
+                self._cache[key] = []
+            return []
+        offers = self._parse(data, leg_indices)
         with self._lock:
             self._cache[key] = offers
         return offers

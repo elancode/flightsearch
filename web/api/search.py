@@ -12,13 +12,24 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import traceback
 from http.server import BaseHTTPRequestHandler
 
-from flightcore import (
-    CABIN_ORDER, DuffelProvider, LegSpec, MockProvider, TripSpec,
-    plan_searches, run_trip_result,
-)
+# Ensure the sibling core module resolves in the serverless bundle regardless
+# of the working directory Vercel invokes the function from.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+# Import lazily-guarded: if the core fails to import on the platform, surface
+# the real reason as JSON instead of a raw FUNCTION_INVOCATION_FAILED.
+IMPORT_ERROR: str | None = None
+try:
+    from flightcore import (
+        CABIN_ORDER, DuffelProvider, LegSpec, MockProvider, TripSpec,
+        plan_searches, run_trip_result,
+    )
+except Exception as _exc:  # noqa: BLE001
+    IMPORT_ERROR = f"{type(_exc).__name__}: {_exc}"
 
 # Guard rails so a pathological spec can't blow the serverless time budget.
 MAX_LEGS = 6
@@ -129,6 +140,10 @@ class handler(BaseHTTPRequestHandler):
         self._send(204, {})
 
     def do_POST(self) -> None:
+        if IMPORT_ERROR:
+            self._send(500, {"ok": False,
+                             "error": f"Backend failed to load: {IMPORT_ERROR}"})
+            return
         try:
             length = int(self.headers.get("content-length") or 0)
             raw = self.rfile.read(length) if length else b"{}"
