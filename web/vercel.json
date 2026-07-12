@@ -5,7 +5,8 @@
   "outputDirectory": "dist",
   "functions": {
     "api/search.py": {
-      "maxDuration": 60
+      "maxDuration": 60,
+      "includeFiles": "api/flightcore.py"
     }
   }
 }

@@ -16,12 +16,10 @@ import sys
 import traceback
 from http.server import BaseHTTPRequestHandler
 
-# Ensure the sibling core module resolves in the serverless bundle regardless
-# of the working directory Vercel invokes the function from.
+# flightcore.py is bundled alongside this file (via `includeFiles` in
+# vercel.json). Put its directory on the path and import it, guarded so a load
+# failure surfaces as JSON instead of a raw FUNCTION_INVOCATION_FAILED.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
-# Import lazily-guarded: if the core fails to import on the platform, surface
-# the real reason as JSON instead of a raw FUNCTION_INVOCATION_FAILED.
 IMPORT_ERROR: str | None = None
 try:
     from flightcore import (
