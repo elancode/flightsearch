@@ -1,0 +1,307 @@
+/* Screen 2a — Query builder. */
+
+.qb-mode {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 3px;
+}
+.qb-mode button {
+  border: none;
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  color: var(--muted);
+}
+.qb-mode button.active {
+  background: var(--ink);
+  color: #fff;
+}
+
+.qb-form {
+  flex: 1;
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+}
+
+.qb-legs {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.qb-legs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.leg-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.leg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.leg-head-left {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+}
+.leg-n {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--faint);
+  text-transform: uppercase;
+}
+.leg-role {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--muted);
+  background: var(--tint);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  padding: 2px 7px;
+}
+.leg-head-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.leg-flex-hint {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+
+.leg-route {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.leg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.leg-field.grow {
+  flex: 1;
+  min-width: 150px;
+}
+.swap-btn {
+  width: 34px;
+  height: 38px;
+  font-size: 15px;
+  margin-bottom: 1px;
+}
+
+/* via / stopover control (open-item) */
+.leg-via {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.via-codes {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.via-remove {
+  border: none;
+  background: transparent;
+  color: var(--faint);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 12px;
+  padding: 0 2px;
+  align-self: center;
+}
+.via-remove:hover {
+  color: var(--warn);
+}
+
+/* cabin toggle chips */
+.leg-cabins {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.cabin-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  border-radius: 999px;
+  padding: 6px 13px;
+  cursor: pointer;
+  background: var(--surface);
+}
+.cabin-chip .chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.qb-constraints {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.constraint-row {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* aside */
+.qb-aside {
+  width: 352px;
+  flex: none;
+  border-left: 1px solid var(--line);
+  background: var(--tint);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.aside-card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.callplan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+.callplan-tag {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.callplan-num {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.callplan-num b {
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--accent);
+}
+.callplan-num span {
+  font-size: 13px;
+  color: var(--muted);
+}
+.callplan-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-top: 1px solid var(--line);
+  padding-top: 11px;
+}
+.callplan-line b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.callplan-line span {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--faint);
+}
+.callplan-note {
+  font-size: 11px;
+  color: var(--faint);
+  line-height: 1.5;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.run-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--muted);
+}
+.run-btn {
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-family: var(--sans);
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+.run-btn .calls {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-weight: 500;
+  opacity: 0.85;
+}
+.run-err {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--warn);
+  line-height: 1.5;
+}
+
+.primer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 2px 2px 0;
+}
+.primer-chips {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 10px 11px;
+  line-height: 1.7;
+}
+.primer-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  line-height: 1.5;
+}
