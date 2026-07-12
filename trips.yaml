@@ -1,0 +1,51 @@
+# Trip constraint spec — this schema is effectively the product spec.
+#
+# Per leg:
+#   cabins_acceptable : cabins you'd fly on this leg, any order
+#   comfort_value     : what each cabin is WORTH to you on this leg, in $.
+#                       Ranking uses effective cost = price - comfort value.
+#                       ECONOMY is implicitly 0. This is how "business is
+#                       worth it on the overnight but not the daytime return"
+#                       gets expressed.
+#   date_flex_days    : reserved for the --flex sweep (not in v0 to keep
+#                       API call counts sane)
+
+trips:
+  - name: "SFO-TLV, premium eastbound overnight"
+    legs:
+      - origin: SFO
+        destination: TLV
+        date: 2026-10-12
+        cabins_acceptable: [BUSINESS, PREMIUM_ECONOMY, ECONOMY]
+        comfort_value:
+          BUSINESS: 1500        # flat bed on the ~15h overnight
+          PREMIUM_ECONOMY: 500
+      - origin: TLV
+        destination: SFO
+        date: 2026-10-26
+        cabins_acceptable: [ECONOMY, PREMIUM_ECONOMY]
+        comfort_value:
+          PREMIUM_ECONOMY: 250  # nice but not critical westbound/daytime
+    constraints:
+      max_stops: 1
+      max_layover_minutes: 240
+      passengers: 1
+      currency: USD
+
+  - name: "SFO-PMI summer"
+    legs:
+      - origin: SFO
+        destination: PMI
+        date: 2026-08-05
+        cabins_acceptable: [PREMIUM_ECONOMY, ECONOMY]
+        comfort_value:
+          PREMIUM_ECONOMY: 400
+      - origin: PMI
+        destination: SFO
+        date: 2026-08-24
+        cabins_acceptable: [ECONOMY]
+    constraints:
+      max_stops: 1
+      max_layover_minutes: 300
+      passengers: 1
+      currency: USD
