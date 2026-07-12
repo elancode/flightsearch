@@ -17,6 +17,7 @@ import itertools
 import json
 import os
 import random
+import re
 import sys
 import threading
 import time
@@ -39,6 +40,25 @@ DUFFEL_CABIN = {"economy": "ECONOMY", "premium_economy": "PREMIUM_ECONOMY",
 
 def cabin_rank(cabin: str) -> int:
     return CABIN_ORDER.index(cabin) if cabin in CABIN_ORDER else -1
+
+
+_ISO_DUR = re.compile(
+    r"^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$")
+
+
+def parse_iso_duration(s: Optional[str]) -> Optional[int]:
+    """ISO-8601 duration (e.g. 'PT15H5M', 'P1DT4H') -> minutes.
+
+    Duffel gives per-slice/segment durations that are timezone-correct, unlike
+    subtracting its naive local `departing_at`/`arriving_at` across airports.
+    """
+    if not s:
+        return None
+    m = _ISO_DUR.match(s)
+    if not m:
+        return None
+    d, h, mi, se = (int(x) if x else 0 for x in m.groups())
+    return d * 1440 + h * 60 + mi + (1 if se >= 30 else 0)
 
 
 @dataclass
@@ -79,16 +99,20 @@ class Segment:
     depart: str
     arrive: str
     cabin: str
+    duration: Optional[str] = None  # Duffel per-segment ISO-8601 duration
 
 
 @dataclass
 class PricedItinerary:
     segments: list[Segment]
+    duration_iso: Optional[str] = None  # Duffel slice duration (tz-correct)
 
     def stops(self) -> int:
         return len(self.segments) - 1
 
     def layovers_minutes(self) -> list[int]:
+        # Layovers are between two segments at the SAME airport, so subtracting
+        # their local times is correct (no timezone crossing).
         outs = []
         for a, b in zip(self.segments, self.segments[1:]):
             t1 = datetime.fromisoformat(a.arrive)
@@ -107,6 +131,15 @@ class PricedItinerary:
         return ", ".join(f"{s.carrier}{s.number}" for s in self.segments)
 
     def duration_minutes(self) -> Optional[int]:
+        # Prefer Duffel's timezone-correct duration. Fall back to segment
+        # durations + layovers (also tz-safe), then to a naive timestamp diff
+        # (only correct within one timezone, e.g. the mock provider).
+        iso = parse_iso_duration(self.duration_iso)
+        if iso is not None:
+            return iso
+        seg_durs = [parse_iso_duration(s.duration) for s in self.segments]
+        if all(d is not None for d in seg_durs):
+            return sum(seg_durs) + sum(self.layovers_minutes())  # type: ignore[arg-type]
         try:
             t1 = datetime.fromisoformat(self.segments[0].depart)
             t2 = datetime.fromisoformat(self.segments[-1].arrive)
@@ -115,11 +148,13 @@ class PricedItinerary:
             return None
 
     def overnight(self) -> bool:
-        """Heuristic: crosses a calendar date and departs in the evening."""
+        """Red-eye heuristic from the origin-local departure time only.
+
+        (Departure local time is reliable; a cross-timezone arrival is not.)
+        """
         try:
             dep = datetime.fromisoformat(self.segments[0].depart)
-            arr = datetime.fromisoformat(self.segments[-1].arrive)
-            return arr.date() > dep.date() and dep.hour >= 17
+            return dep.hour >= 18 or dep.hour < 6
         except (ValueError, IndexError):
             return False
 
@@ -254,13 +289,15 @@ class DuffelProvider:
                             depart=s["departing_at"],
                             arrive=s["arriving_at"],
                             cabin=cab,
+                            duration=s.get("duration"),
                         ))
                     except (KeyError, TypeError):
                         ok = False
                         break
                 if not ok:
                     break
-                itins.append(PricedItinerary(segments=segs))
+                itins.append(PricedItinerary(segments=segs,
+                                             duration_iso=sl.get("duration")))
             if not ok or len(itins) != len(leg_indices):
                 continue
             try:
