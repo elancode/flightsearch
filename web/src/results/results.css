@@ -232,6 +232,17 @@
   gap: 14px;
   padding: 11px 14px;
 }
+.rank-row-main[role='button']:hover {
+  background: var(--tint);
+}
+.rank-row-main .rk-chevron {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--faint);
+  width: 10px;
+  text-align: center;
+  margin-right: -6px;
+}
 .rank-row-main .rk {
   font-family: var(--mono);
   font-size: 12px;

@@ -84,6 +84,8 @@ export interface Row {
   barFill: string
   barPct: number
   ratioStr: string
+  segs: Seg[] // per-leg detail for this option (may be empty for the demo)
+  links: { label: string; href: string }[]
 }
 
 export interface Seg {
@@ -132,6 +134,17 @@ const cabinsFlow = (cabins: Cabin[]): [Cabin, Cabin] => {
   return [c1, c2]
 }
 
+function buildLinks(segs: Seg[], raw: string[]): { label: string; href: string }[] {
+  return raw.map((href, i) => ({
+    label: segs[i]
+      ? `google flights · ${segs[i].route.replace(' → ', '→')} ${segs[i].cab
+          .toLowerCase()
+          .replace('_', ' ')} · ${segs[i].date}`
+      : `book segment ${i + 1}`,
+    href,
+  }))
+}
+
 function makeRow(
   o: ApiOption,
   rank: number,
@@ -139,7 +152,10 @@ function makeRow(
   isRec: boolean,
 ): Row {
   const [c1, c2] = cabinsFlow(o.cabins)
+  const segs = (o.segments ?? []).map(segFrom)
   return {
+    segs,
+    links: buildLinks(segs, o.links ?? []),
     rank,
     strat: o.strategy,
     stratColor: STRATEGY_COLOR[o.strategy] ?? 'var(--eco)',
@@ -242,14 +258,9 @@ export function mapResult(state: QueryState, res: SearchResponse): ResultsView {
     baseline.barFill = 'var(--warn-tint)'
   }
 
-  const rec = recIndex >= 0 ? res.options[recIndex] : undefined
-  const segs = (rec?.segments ?? []).map(segFrom)
-  const links = (rec?.links ?? []).map((href, i) => ({
-    label: segs[i]
-      ? `google flights · ${segs[i].route.replace(' → ', '→')} ${segs[i].cab.toLowerCase().replace('_', ' ')} · ${segs[i].date}`
-      : `book segment ${i + 1}`,
-    href,
-  }))
+  const recRow = recIndex >= 0 ? rows[recIndex] : undefined
+  const segs = recRow?.segs ?? []
+  const links = recRow?.links ?? []
 
   return {
     live: res.mode === 'live',
