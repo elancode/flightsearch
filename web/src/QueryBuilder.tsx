@@ -61,7 +61,15 @@ const emptyLeg = (): Leg => ({
 // Auto-uppercase, strip non-letters, cap at 3 chars — for IATA code inputs.
 const up = (s: string) => s.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3)
 
-export function QueryBuilder({ onRun }: { onRun: () => void }) {
+export function QueryBuilder({
+  onRun,
+  loading,
+  apiError,
+}: {
+  onRun: (state: QueryState) => void
+  loading: boolean
+  apiError: string | null
+}) {
   const [st, setSt] = useState<QueryState>(SEED)
 
   const upLeg = (i: number, fn: (l: Leg) => Leg) =>
@@ -108,9 +116,9 @@ export function QueryBuilder({ onRun }: { onRun: () => void }) {
       }
 
   const onRunClick = () => {
-    if (!valid) return
+    if (!valid || loading) return
     // dry-run sends no calls — the plan is already live in the aside.
-    if (st.mode !== 'dry') onRun()
+    if (st.mode !== 'dry') onRun(st)
   }
 
   return (
@@ -387,11 +395,22 @@ export function QueryBuilder({ onRun }: { onRun: () => void }) {
               />
               {mi.token}
             </div>
-            <button className="run-btn" style={runStyle} onClick={onRunClick} disabled={mi.primary && !valid}>
-              <span>{mi.run}</span>
+            <button
+              className="run-btn"
+              style={{ ...runStyle, ...(loading ? { cursor: 'wait', opacity: 0.85 } : null) }}
+              onClick={onRunClick}
+              disabled={(mi.primary && !valid) || loading}
+            >
+              <span>{loading ? 'Searching…' : mi.run}</span>
               <span className="calls">{plan.total} calls</span>
             </button>
             {errText && <div className="run-err">⚠ {errText}</div>}
+            {apiError && !errText && <div className="run-err">⚠ {apiError}</div>}
+            {st.mode === 'live' && !errText && !apiError && (
+              <div className="run-hint">
+                Runs real Duffel pricing · needs DUFFEL_ACCESS_TOKEN on the server
+              </div>
+            )}
           </div>
 
           {/* ranking primer */}

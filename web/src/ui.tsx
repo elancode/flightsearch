@@ -81,3 +81,24 @@ export function LiveStatus({ label = 'LIVE · duffel' }: { label?: string }) {
     </span>
   )
 }
+
+/** Results app-bar status: distinguishes the demo, a mock run, and live Duffel. */
+export function StatusBadge({ kind }: { kind: 'sample' | 'mock' | 'live' }) {
+  if (kind === 'live') return <LiveStatus />
+  const label = kind === 'mock' ? 'mock prices' : 'sample data'
+  return (
+    <span
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        fontFamily: 'var(--mono)',
+        fontSize: 11.5,
+        color: 'var(--faint)',
+      }}
+    >
+      <Dot color="var(--faint)" />
+      {label}
+    </span>
+  )
+}

@@ -39,9 +39,38 @@ npm run build      # typecheck + production build → dist/
 npm run preview    # serve the production build
 ```
 
-## Wiring to the backend
+## Live Duffel search
 
-The results screens currently render the sample ranked dataset from the
-handoff. To go live, replace `src/data.ts` with a fetch of `results.json`
-produced by `run_trip` (see `../flightarb.py`), and POST the query-builder
-state to a thin endpoint that constructs a `TripSpec`.
+The query builder's **Run** button POSTs the search spec to a Python
+serverless function (`api/search.py`) that prices it through the shared core
+(`api/flightcore.py` — the same code the CLI uses) and returns ranked results
+the three views render. Browsing a results screen without running shows the
+built-in sample story (`src/data.ts`); both paths flow through one view-model
+(`src/viewmodel.ts`).
+
+- **`--mock`** runs synthetic prices with no token — good for a demo.
+- **`live`** runs real Duffel pricing. This requires the token below.
+
+### Required: `DUFFEL_ACCESS_TOKEN`
+
+The Duffel token is read **server-side only** and never ships to the browser.
+Set it in Vercel → project **Settings → Environment Variables**:
+
+```
+DUFFEL_ACCESS_TOKEN = duffel_live_...   (or duffel_test_ for sandbox fares)
+```
+
+Redeploy after adding it. Locally, `vercel dev` picks it up from a `.env`
+(gitignored); or point the app at a deployed backend with
+`VITE_API_BASE=https://your-app.vercel.app`.
+
+### Notes
+
+- Provider calls fan out in parallel with a tightened supplier timeout so a
+  full search fits the serverless budget (`maxDuration` is set in
+  `vercel.json`); a very large spec is capped server-side.
+- Duffel **test** tokens return sandbox/Duffel Airways fares (mechanics only,
+  not real savings). A **live** token returns real routes; searching is free —
+  the tool never books.
+- The CLI (`../flightarb.py`) shares `api/flightcore.py`, so the numbers on the
+  web and in `report.md` come from the same planner and ranking.

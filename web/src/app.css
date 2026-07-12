@@ -84,6 +84,11 @@
 .viewnav .spacer {
   flex: 1;
 }
+.viewnav-state {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--faint);
+}
 
 .screen {
   width: 100%;

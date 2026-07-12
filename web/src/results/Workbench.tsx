@@ -1,10 +1,11 @@
 import './results.css'
-import { ROWS, SEGS, LINKS } from '../data'
-import { CabinFlow, Dot, LiveStatus } from '../ui'
+import type { ResultsView } from '../viewmodel'
+import { CabinFlow, Dot, StatusBadge } from '../ui'
+import { ConstraintTags, SpecLegCardWide } from './Spec'
 
-// 1a Workbench — balanced two-pane: read-only trip spec on the left,
-// ranked options on the right. The everyday tool.
-export function Workbench() {
+// 1a Workbench — balanced two-pane: read-only trip spec on the left, ranked
+// options on the right. Fully data-driven: renders live results or the sample.
+export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => void }) {
   return (
     <div className="app-card">
       <div className="app-bar">
@@ -15,8 +16,8 @@ export function Workbench() {
           <span style={{ fontSize: 12, color: 'var(--faint)' }}>flight decomposition search</span>
         </div>
         <div className="res-appbar-meta">
-          <LiveStatus />
-          <span className="cur">USD</span>
+          <StatusBadge kind={view.statusKind} />
+          <span className="cur">{view.currency}</span>
         </div>
       </div>
 
@@ -39,127 +40,19 @@ export function Workbench() {
                 color: 'var(--ink)',
               }}
             >
-              SFO–TLV, premium eastbound overnight
+              {view.spec.name}
             </div>
           </div>
 
-          {/* LEG 1 */}
-          <div className="spec-leg">
-            <div className="spec-leg-head">
-              <span className="spec-leg-title">Leg 1 · outbound</span>
-              <span className="badge ovn">OVERNIGHT</span>
-            </div>
-            <div className="spec-route">
-              <b>SFO → TLV</b>
-              <span>2026-10-12</span>
-            </div>
-            <div>
-              <div className="spec-sub">acceptable cabins</div>
-              <div className="cabin-tags">
-                <span
-                  className="cabin-tag-pill"
-                  style={{ border: '1px solid var(--bus)', background: 'var(--warn-tint)', color: 'var(--ink)' }}
-                >
-                  <Dot color="var(--bus)" />
-                  BUSINESS
-                </span>
-                <span
-                  className="cabin-tag-pill"
-                  style={{ border: '1px solid var(--prm)', background: 'var(--prm-tint)', color: 'var(--ink)' }}
-                >
-                  <Dot color="var(--prm)" />
-                  PREM_ECON
-                </span>
-                <span
-                  className="cabin-tag-pill"
-                  style={{ border: '1px solid var(--line2)', background: 'var(--surface)', color: 'var(--muted)' }}
-                >
-                  <Dot color="var(--eco)" />
-                  ECONOMY
-                </span>
-              </div>
-            </div>
-            <div>
-              <div className="spec-sub">
-                comfort value <span style={{ color: 'var(--faint)' }}>($ worth on this leg)</span>
-              </div>
-              <div className="comfort-rows">
-                <div className="comfort-row">
-                  <span style={{ color: 'var(--ink)' }}>BUSINESS</span>
-                  <span className="val">$1,500</span>
-                </div>
-                <div className="comfort-row">
-                  <span style={{ color: 'var(--ink)' }}>PREMIUM_ECONOMY</span>
-                  <span className="val">$500</span>
-                </div>
-                <div className="comfort-row" style={{ color: 'var(--faint)' }}>
-                  <span>ECONOMY</span>
-                  <span>$0 · baseline</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          {view.spec.legs.map((leg) => (
+            <SpecLegCardWide leg={leg} key={leg.n} />
+          ))}
 
-          {/* LEG 2 */}
-          <div className="spec-leg">
-            <div className="spec-leg-head">
-              <span className="spec-leg-title">Leg 2 · return</span>
-              <span className="badge day">DAYTIME</span>
-            </div>
-            <div className="spec-route">
-              <b>TLV → SFO</b>
-              <span>2026-10-26</span>
-            </div>
-            <div>
-              <div className="spec-sub">acceptable cabins</div>
-              <div className="cabin-tags">
-                <span
-                  className="cabin-tag-pill"
-                  style={{ border: '1px solid var(--line2)', background: 'var(--surface)', color: 'var(--ink)' }}
-                >
-                  <Dot color="var(--eco)" />
-                  ECONOMY
-                </span>
-                <span
-                  className="cabin-tag-pill"
-                  style={{ border: '1px solid var(--prm)', background: 'var(--prm-tint)', color: 'var(--ink)' }}
-                >
-                  <Dot color="var(--prm)" />
-                  PREM_ECON
-                </span>
-                <span
-                  className="cabin-tag-pill"
-                  style={{ border: '1px dashed var(--line2)', background: 'transparent', color: 'var(--faint)' }}
-                >
-                  + BUSINESS
-                </span>
-              </div>
-            </div>
-            <div>
-              <div className="spec-sub">comfort value</div>
-              <div className="comfort-rows">
-                <div className="comfort-row">
-                  <span style={{ color: 'var(--ink)' }}>PREMIUM_ECONOMY</span>
-                  <span className="val">$250</span>
-                </div>
-                <div className="comfort-row" style={{ color: 'var(--faint)' }}>
-                  <span>ECONOMY</span>
-                  <span>$0 · baseline</span>
-                </div>
-              </div>
-            </div>
-          </div>
+          <ConstraintTags items={view.spec.constraints} />
 
-          <div className="constraint-tags">
-            <span>max_stops ≤ 1</span>
-            <span>layover ≤ 240m</span>
-            <span>1 adult</span>
-            <span>USD</span>
-          </div>
-
-          <button className="btn-primary" style={{ marginTop: 2 }}>
-            <span>Run search</span>
-            <span className="calls">9 pricing calls</span>
+          <button className="btn-primary" style={{ marginTop: 2 }} onClick={onEdit}>
+            <span>Edit &amp; re-run</span>
+            <span className="calls">{view.callsMade} pricing calls</span>
           </button>
         </div>
 
@@ -171,40 +64,53 @@ export function Workbench() {
                 Ranked options
               </span>
               <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>
-                by effective cost · 6 of 6 surviving constraints
+                by effective cost · {view.rows.length} surviving constraints
               </span>
             </div>
             <span style={{ fontFamily: 'var(--mono)', fontSize: 11, color: 'var(--muted)' }}>
-              ran 2s ago · <a href="#">re-run</a>
+              {view.callsMade} calls · <a onClick={onEdit} style={{ cursor: 'pointer' }}>re-run</a>
             </span>
           </div>
 
+          {view.warning && (
+            <div className="res-warning">⚠ {view.warning}</div>
+          )}
+
           {/* baseline callout */}
-          <div className="baseline-callout">
-            <div className="stack" style={{ gap: 2 }}>
-              <span
-                style={{
-                  fontFamily: 'var(--mono)',
-                  fontSize: 10.5,
-                  letterSpacing: '0.1em',
-                  color: 'var(--faint)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Naive baseline
-              </span>
-              <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                uniform round-trip{' '}
-                <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>BUS/BUS</span> —
-                what Kayak &amp; Google price
-              </span>
+          {view.baseline ? (
+            <div className="baseline-callout">
+              <div className="stack" style={{ gap: 2 }}>
+                <span
+                  style={{
+                    fontFamily: 'var(--mono)',
+                    fontSize: 10.5,
+                    letterSpacing: '0.1em',
+                    color: 'var(--faint)',
+                    textTransform: 'uppercase',
+                  }}
+                >
+                  Naive baseline
+                </span>
+                <span style={{ fontSize: 12, color: 'var(--muted)' }}>
+                  uniform round-trip{' '}
+                  <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
+                    {view.baselineCabinStr}
+                  </span>{' '}
+                  — what Kayak &amp; Google price
+                </span>
+              </div>
+              <div className="num">{view.baseline.priceStr}</div>
             </div>
-            <div className="num">$4,820</div>
-          </div>
+          ) : (
+            <div className="res-warning">
+              No naive baseline priced (common with a Duffel test token) — savings vs. baseline
+              unavailable.
+            </div>
+          )}
 
           {/* rows */}
           <div className="stack" style={{ gap: 8 }}>
-            {ROWS.map((row) => (
+            {view.rows.map((row) => (
               <div className="rank-row" key={row.rank} style={{ border: `1px solid ${row.recBorder}` }}>
                 <div className="rank-row-main">
                   <span className="rk">{row.rank}</span>
@@ -216,23 +122,31 @@ export function Workbench() {
                   <span className="rank-price">
                     <b>{row.priceStr}</b>
                     <span>
-                      eff {row.effStr} ·{' '}
-                      <span style={{ color: 'var(--pos)' }}>−{row.saveStr} vs base</span>
+                      eff {row.effStr}
+                      {row.save != null && (
+                        <>
+                          {' '}·{' '}
+                          <span style={{ color: row.cheaper ? 'var(--pos)' : 'var(--muted)' }}>
+                            {row.cheaper ? '−' : '+'}
+                            {row.saveStr} vs base
+                          </span>
+                        </>
+                      )}
                     </span>
                   </span>
                 </div>
 
-                {row.recFlag && (
+                {row.recFlag && view.segs.length > 0 && (
                   <div className="rec-detail">
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span className="rec-badge">RECOMMENDED</span>
                       <span style={{ fontSize: 12, color: 'var(--ink)' }}>
-                        best single-PNR pick — business on the overnight, economy on the daytime
-                        return. Effectively ties all-economy ($1,290), $2,060 under baseline.
+                        best single-PNR pick by effective cost{' '}
+                        {row.save != null && row.cheaper && <>— {row.saveStr} under baseline</>}.
                       </span>
                     </div>
                     <div className="stack" style={{ gap: 6 }}>
-                      {SEGS.map((s) => (
+                      {view.segs.map((s) => (
                         <div className="seg-line" key={s.leg}>
                           <span style={{ color: 'var(--faint)', width: 42 }}>{s.leg}</span>
                           <span style={{ fontWeight: 600, width: 96 }}>{s.route}</span>
@@ -256,13 +170,15 @@ export function Workbench() {
                         </div>
                       ))}
                     </div>
-                    <div className="link-row">
-                      {LINKS.map((l) => (
-                        <a href={l.href} key={l.label}>
-                          {l.label} ↗
-                        </a>
-                      ))}
-                    </div>
+                    {view.links.length > 0 && (
+                      <div className="link-row">
+                        {view.links.map((l) => (
+                          <a href={l.href} key={l.label} target="_blank" rel="noreferrer">
+                            {l.label} ↗
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

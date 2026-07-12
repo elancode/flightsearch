@@ -3,6 +3,10 @@ import { QueryBuilder } from './QueryBuilder'
 import { Workbench } from './results/Workbench'
 import { Notebook } from './results/Notebook'
 import { Benchmark } from './results/Benchmark'
+import { runSearch } from './api'
+import { mapResult, type ResultsView } from './viewmodel'
+import { SAMPLE_VIEW } from './data'
+import type { QueryState } from './types'
 
 type View = '2a' | '1a' | '1b' | '1c'
 
@@ -38,7 +42,29 @@ const NAV: { id: View; tag: string; label: string; caption: string }[] = [
 
 export function App() {
   const [view, setView] = useState<View>('2a')
+  const [results, setResults] = useState<ResultsView | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const active = NAV.find((n) => n.id === view)!
+
+  // Fires the live search: POST the query state, project the response into a
+  // ResultsView, and jump to the Workbench to show it.
+  async function handleRun(state: QueryState) {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await runSearch(state)
+      setResults(mapResult(state, res))
+      setView('1a')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Search failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const shown = results ?? SAMPLE_VIEW
+  const goEdit = () => setView('2a')
 
   return (
     <div className="page">
@@ -46,10 +72,9 @@ export function App() {
         <div className="page-eyebrow">itsadeal.ai · constraint-based flight search</div>
         <div className="page-title">Find the deal an OTA won&rsquo;t surface</div>
         <div className="page-sub">
-          Define a trip&rsquo;s per-leg cabin preferences, run the search, read strategies ranked
-          by effective cost against the naive round-trip baseline. The query builder is fully
-          interactive; the three results directions are competing presentations of the same ranked
-          data.
+          Define a trip&rsquo;s per-leg cabin preferences, run the search against Duffel, read
+          strategies ranked by effective cost against the naive round-trip baseline. The three
+          results directions are competing presentations of the same ranked data.
         </div>
       </div>
 
@@ -64,14 +89,18 @@ export function App() {
             {n.label}
           </button>
         ))}
+        <span className="spacer" />
+        <span className="viewnav-state">
+          {results ? `${results.statusKind} · ${results.callsMade} calls` : 'sample data'}
+        </span>
       </nav>
 
       <div className="screen">
         <div className="screen-caption">{active.caption}</div>
-        {view === '2a' && <QueryBuilder onRun={() => setView('1a')} />}
-        {view === '1a' && <Workbench />}
-        {view === '1b' && <Notebook />}
-        {view === '1c' && <Benchmark />}
+        {view === '2a' && <QueryBuilder onRun={handleRun} loading={loading} apiError={error} />}
+        {view === '1a' && <Workbench view={shown} onEdit={goEdit} />}
+        {view === '1b' && <Notebook view={shown} onEdit={goEdit} />}
+        {view === '1c' && <Benchmark view={shown} onEdit={goEdit} />}
       </div>
     </div>
   )

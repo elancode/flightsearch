@@ -1,119 +1,114 @@
-// Sample ranked dataset for the results directions (1a/1b/1c).
-//
-// Per the handoff these three screens are static explorations that all
-// consume the SAME ranked dataset — the SFO–TLV overnight story. When wired
-// to the real backend this is what `run_trip` / `results.json` would return.
+// Built-in sample story (SFO–TLV overnight) for browsing the results
+// directions without running a live search. It is expressed as a canned
+// SearchResponse + the query that produced it, then projected through the
+// exact same `mapResult` the live API path uses — so the demo and real
+// results render through one code path.
 
-import { STRATEGY_COLOR, STRATEGY_FILL, CABIN_META, type Cabin, usd } from './types'
+import type { QueryState } from './types'
+import { mapResult, type ApiOption, type SearchResponse } from './viewmodel'
 
-export interface RawRow {
-  rank: number
-  strat: 'UNIFORM_RT' | 'MIXED_RT' | 'SPLIT_ONEWAY'
-  c1: Cabin
-  c2: Cabin
-  price: number
-  credit: number
-  eff: number
-  save: number
-  pnr: boolean
-  rec?: boolean
+const SAMPLE_STATE: QueryState = {
+  name: 'SFO–TLV, premium eastbound overnight',
+  mode: 'live',
+  legs: [
+    {
+      origin: 'SFO',
+      destination: 'TLV',
+      via: [],
+      date: '2026-10-12',
+      cabins: { ECONOMY: true, PREMIUM_ECONOMY: true, BUSINESS: true, FIRST: false },
+      comfort: { PREMIUM_ECONOMY: 500, BUSINESS: 1500 },
+    },
+    {
+      origin: 'TLV',
+      destination: 'SFO',
+      via: [],
+      date: '2026-10-26',
+      cabins: { ECONOMY: true, PREMIUM_ECONOMY: true, BUSINESS: false, FIRST: false },
+      comfort: { PREMIUM_ECONOMY: 250 },
+    },
+  ],
+  constraints: { maxStops: 1, maxLayover: 240, passengers: 1, currency: 'USD' },
 }
 
-export const MAX_EFF = 3320 // baseline effective cost — the bar-chart denominator
-
-export const RAW_ROWS: RawRow[] = [
-  { rank: 1, strat: 'SPLIT_ONEWAY', c1: 'BUSINESS', c2: 'ECONOMY', price: 2540, credit: 1500, eff: 1040, save: 2280, pnr: false },
-  { rank: 2, strat: 'SPLIT_ONEWAY', c1: 'BUSINESS', c2: 'PREMIUM_ECONOMY', price: 2910, credit: 1750, eff: 1160, save: 1910, pnr: false },
-  { rank: 3, strat: 'MIXED_RT', c1: 'BUSINESS', c2: 'ECONOMY', price: 2760, credit: 1500, eff: 1260, save: 2060, pnr: true, rec: true },
-  { rank: 4, strat: 'UNIFORM_RT', c1: 'ECONOMY', c2: 'ECONOMY', price: 1290, credit: 0, eff: 1290, save: 3530, pnr: true },
-  { rank: 5, strat: 'MIXED_RT', c1: 'BUSINESS', c2: 'PREMIUM_ECONOMY', price: 3180, credit: 1750, eff: 1430, save: 1640, pnr: true },
-  { rank: 6, strat: 'UNIFORM_RT', c1: 'PREMIUM_ECONOMY', c2: 'PREMIUM_ECONOMY', price: 2180, credit: 750, eff: 1430, save: 2640, pnr: true },
+const REC_SEGMENTS = [
+  {
+    leg_index: 0,
+    leg: 'Leg 1',
+    origin: 'SFO',
+    destination: 'TLV',
+    route: 'SFO → TLV',
+    date: '2026-10-12',
+    cabin: 'BUSINESS' as const,
+    flights: 'UA 954',
+    stops: 0,
+    note: 'overnight · 15h 05m',
+  },
+  {
+    leg_index: 1,
+    leg: 'Leg 2',
+    origin: 'TLV',
+    destination: 'SFO',
+    route: 'TLV → SFO',
+    date: '2026-10-26',
+    cabin: 'ECONOMY' as const,
+    flights: 'UA 955',
+    stops: 0,
+    note: 'daytime · 15h 55m',
+  },
 ]
 
-export interface EnrichedRow extends RawRow {
-  stratColor: string
-  priceStr: string
-  effStr: string
-  creditStr: string
-  saveStr: string
-  c1abbr: string
-  c1dot: string
-  c2abbr: string
-  c2dot: string
-  barPct: number
-  ratioStr: string
-  flag: string
-  recFlag: boolean
-  recBorder: string
-  rowBg: string
-  barFill: string
+const opt = (
+  strategy: ApiOption['strategy'],
+  cabins: ApiOption['cabins'],
+  price: number,
+  credit: number,
+  save: number,
+  single_pnr: boolean,
+  segments: ApiOption['segments'] = [],
+): ApiOption => ({
+  strategy,
+  cabins,
+  price,
+  comfort_credit: credit,
+  effective: price - credit,
+  save,
+  single_pnr,
+  flags: single_pnr ? ['single PNR'] : ['separate PNRs — no misconnect protection'],
+  links: segments.map(() => '#'),
+  segments,
+})
+
+const SAMPLE_RESPONSE: SearchResponse = {
+  ok: true,
+  mode: 'live',
+  currency: 'USD',
+  trip_name: SAMPLE_STATE.name,
+  baseline: { cabins: ['BUSINESS', 'BUSINESS'], price: 4820, comfort_credit: 1500, effective: 3320 },
+  options: [
+    opt('SPLIT_ONEWAY', ['BUSINESS', 'ECONOMY'], 2540, 1500, 2280, false),
+    opt('SPLIT_ONEWAY', ['BUSINESS', 'PREMIUM_ECONOMY'], 2910, 1750, 1910, false),
+    opt('MIXED_RT', ['BUSINESS', 'ECONOMY'], 2760, 1500, 2060, true, REC_SEGMENTS),
+    opt('UNIFORM_RT', ['ECONOMY', 'ECONOMY'], 1290, 0, 3530, true),
+    opt('MIXED_RT', ['BUSINESS', 'PREMIUM_ECONOMY'], 3180, 1750, 1640, true),
+    opt('UNIFORM_RT', ['PREMIUM_ECONOMY', 'PREMIUM_ECONOMY'], 2180, 750, 2640, true),
+  ],
+  recommended_index: 2,
+  calls_made: 9,
+  log: [
+    { t: 'pricing UNIFORM_RT     SFO-TLV + TLV-SFO  [BUSINESS]', k: 'call' },
+    { t: 'pricing UNIFORM_RT     SFO-TLV + TLV-SFO  [PREMIUM_ECONOMY]', k: 'call' },
+    { t: 'pricing UNIFORM_RT     SFO-TLV + TLV-SFO  [ECONOMY]', k: 'call' },
+    { t: 'pricing MIXED_RT       SFO-TLV + TLV-SFO  [ALL CABINS]', k: 'call' },
+    { t: '  → 148 offers across 4 cabin combos: (BUS,BUS) (BUS,PRM) (BUS,ECO) (ECO,ECO)', k: 'res' },
+    { t: 'pricing ONEWAY         SFO-TLV           [BUSINESS] ×3', k: 'call' },
+    { t: 'pricing ONEWAY         TLV-SFO           [ECONOMY] ×2', k: 'call' },
+    { t: 'Provider calls made: 9   ·   report.md + results.json written', k: 'done' },
+  ],
 }
 
-export function enrich(r: RawRow): EnrichedRow {
-  return {
-    ...r,
-    stratColor: STRATEGY_COLOR[r.strat],
-    priceStr: usd(r.price),
-    effStr: usd(r.eff),
-    creditStr: usd(r.credit),
-    saveStr: usd(r.save),
-    c1abbr: CABIN_META[r.c1].abbr,
-    c1dot: CABIN_META[r.c1].color,
-    c2abbr: CABIN_META[r.c2].abbr,
-    c2dot: CABIN_META[r.c2].color,
-    barPct: Math.round((r.eff / MAX_EFF) * 100),
-    ratioStr: (r.eff / MAX_EFF).toFixed(2) + '×',
-    flag: r.pnr ? 'single PNR' : 'separate PNRs · no misconnect',
-    recFlag: !!r.rec,
-    recBorder: r.rec ? 'var(--accent)' : 'var(--line)',
-    rowBg: r.rec ? 'var(--accent-tint)' : 'var(--surface)',
-    barFill: r.rec ? 'var(--accent-tint)' : STRATEGY_FILL[r.strat],
-  }
+export const SAMPLE_VIEW = {
+  ...mapResult(SAMPLE_STATE, SAMPLE_RESPONSE),
+  live: false,
+  statusKind: 'sample' as const,
 }
-
-export const ROWS: EnrichedRow[] = RAW_ROWS.map(enrich)
-
-export const BASELINE: EnrichedRow = {
-  ...enrich({ rank: 0, strat: 'UNIFORM_RT', c1: 'BUSINESS', c2: 'BUSINESS', price: 4820, credit: 1500, eff: 3320, save: 0, pnr: true }),
-  barPct: 100,
-  ratioStr: '1.00×',
-}
-
-export interface Seg {
-  leg: string
-  route: string
-  date: string
-  note: string
-  flight: string
-  cab: Cabin
-  cabAbbr: string
-  dot: string
-}
-
-export const SEGS: Seg[] = [
-  { leg: 'Leg 1', route: 'SFO → TLV', date: '2026-10-12', note: 'overnight · 15h 05m', flight: 'UA 954 · nonstop', cab: 'BUSINESS', cabAbbr: 'BUS', dot: 'var(--bus)' },
-  { leg: 'Leg 2', route: 'TLV → SFO', date: '2026-10-26', note: 'daytime · 15h 55m', flight: 'UA 955 · nonstop', cab: 'ECONOMY', cabAbbr: 'ECO', dot: 'var(--eco)' },
-]
-
-export const LINKS = [
-  { label: 'google flights · SFO→TLV business · Oct 12', href: '#' },
-  { label: 'google flights · TLV→SFO economy · Oct 26', href: '#' },
-]
-
-export type LogKind = 'call' | 'res' | 'done'
-export const LOG_COLOR: Record<LogKind, string> = {
-  call: 'var(--muted)',
-  res: 'var(--accent)',
-  done: 'var(--pos)',
-}
-
-export const RUN_LOG: { t: string; k: LogKind }[] = [
-  { t: 'pricing UNIFORM_RT     SFO-TLV + TLV-SFO  [BUSINESS]', k: 'call' },
-  { t: 'pricing UNIFORM_RT     SFO-TLV + TLV-SFO  [PREMIUM_ECONOMY]', k: 'call' },
-  { t: 'pricing UNIFORM_RT     SFO-TLV + TLV-SFO  [ECONOMY]', k: 'call' },
-  { t: 'pricing MIXED_RT       SFO-TLV + TLV-SFO  [ALL CABINS]', k: 'call' },
-  { t: '  → 148 offers across 4 cabin combos: (BUS,BUS) (BUS,PRM) (BUS,ECO) (ECO,ECO)', k: 'res' },
-  { t: 'pricing ONEWAY         SFO-TLV           [BUSINESS] ×3', k: 'call' },
-  { t: 'pricing ONEWAY         TLV-SFO           [ECONOMY] ×2', k: 'call' },
-  { t: 'Provider calls made: 9   ·   report.md + results.json written', k: 'done' },
-]
