@@ -34,7 +34,7 @@ export interface ApiSeg {
 }
 
 export interface ApiOption {
-  strategy: 'UNIFORM_RT' | 'MIXED_RT' | 'SPLIT_ONEWAY'
+  strategy: 'UNIFORM_RT' | 'MIXED_RT' | 'SPLIT_ONEWAY' | 'ONEWAY'
   cabins: Cabin[]
   price: number
   comfort_credit: number

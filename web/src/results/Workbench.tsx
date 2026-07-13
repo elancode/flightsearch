@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import './results.css'
 import type { ResultsView } from '../viewmodel'
-import { CabinFlow, Dot, StatusBadge } from '../ui'
+import { CabinFlow, CabinTag, Dot, StatusBadge } from '../ui'
 import { ConstraintTags, SpecLegCardWide } from './Spec'
 
 // 1a Workbench — balanced two-pane: read-only trip spec on the left, ranked
@@ -23,6 +23,8 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
       next.has(rank) ? next.delete(rank) : next.add(rank)
       return next
     })
+
+  const isOneWay = view.spec.legs.length === 1
 
   return (
     <div className="app-card">
@@ -110,7 +112,7 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
                   Naive baseline
                 </span>
                 <span style={{ fontSize: 12, color: 'var(--muted)' }}>
-                  uniform round-trip{' '}
+                  {isOneWay ? 'one-way' : 'uniform round-trip'}{' '}
                   <span style={{ fontFamily: 'var(--mono)', color: 'var(--ink)' }}>
                     {view.baselineCabinStr}
                   </span>{' '}
@@ -145,7 +147,11 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
                     <span className="strat" style={{ color: row.stratColor }}>
                       {row.strat}
                     </span>
-                    <CabinFlow c1abbr={row.c1abbr} c1dot={row.c1dot} c2abbr={row.c2abbr} c2dot={row.c2dot} />
+                    {row.cabins.length <= 1 ? (
+                      <CabinTag abbr={row.c1abbr} dot={row.c1dot} />
+                    ) : (
+                      <CabinFlow c1abbr={row.c1abbr} c1dot={row.c1dot} c2abbr={row.c2abbr} c2dot={row.c2dot} />
+                    )}
                     <span className="flag">{row.flag}</span>
                     <span className="rank-price">
                       <b>{row.priceStr}</b>

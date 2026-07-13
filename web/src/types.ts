@@ -49,12 +49,14 @@ export const STRATEGY_COLOR: Record<string, string> = {
   UNIFORM_RT: 'var(--eco)',
   MIXED_RT: 'var(--accent)',
   SPLIT_ONEWAY: 'var(--warn)',
+  ONEWAY: 'var(--prm)',
 }
 
 export const STRATEGY_FILL: Record<string, string> = {
   UNIFORM_RT: 'oklch(0.93 0.006 260)',
   MIXED_RT: 'var(--accent-tint)',
   SPLIT_ONEWAY: 'var(--warn-tint)',
+  ONEWAY: 'var(--prm-tint)',
 }
 
 export const cabinRank = (c: Cabin): number => CABINS.indexOf(c)

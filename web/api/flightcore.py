@@ -562,7 +562,12 @@ def run_trip(trip: TripSpec, provider, top_k: int = 3,
                 print(f"    -> {len(offers)} offers across "
                       f"{len(buckets)} cabin combos: {found}")
 
-    if all(oneway_offers[i] for i in range(n)) and n >= 2:
+    if n == 1:
+        # Single leg: no round-trip or split to compose — just rank the
+        # one-way fares (dedup below keeps the cheapest per cabin).
+        for off in oneway_offers[0]:
+            options.append(make_option(trip, "ONEWAY", [off], ["single PNR"]))
+    elif all(oneway_offers[i] for i in range(n)):
         for combo in itertools.product(*[oneway_offers[i] for i in range(n)]):
             options.append(make_option(
                 trip, "SPLIT_ONEWAY", list(combo),
@@ -585,7 +590,10 @@ def run_trip(trip: TripSpec, provider, top_k: int = 3,
 def naive_baseline(trip: TripSpec,
                    ranked: list[RankedOption]) -> Optional[RankedOption]:
     _, _, target = cabin_combos(trip)
-    candidates = [o for o in ranked if o.strategy == "UNIFORM_RT"
+    # Round-trip baseline is the uniform highest-cabin RT; for a one-way it's
+    # the highest-cabin single fare (strategy ONEWAY).
+    base_strats = {"UNIFORM_RT"} if len(trip.legs) >= 2 else {"ONEWAY"}
+    candidates = [o for o in ranked if o.strategy in base_strats
                   and set(o.cabins_by_leg(len(trip.legs))) == {target}]
     return min(candidates, key=lambda o: o.total_price) if candidates else None
 
