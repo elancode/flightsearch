@@ -114,11 +114,8 @@ def run_search(payload: dict) -> tuple[int, dict]:
         provider = DuffelProvider(
             token=token, sleep_s=0.0, supplier_timeout_ms=SUPPLIER_TIMEOUT_MS)
 
+    # run_trip_result sets a diagnostic `warning` when nothing ranks.
     result = run_trip_result(trip, provider, parallel=True, mode=mode)
-    if not result.get("options"):
-        result["warning"] = (
-            "No offers survived the constraints. In Duffel test mode this is "
-            "common — a live token returns real routes.")
     return 200, result
 
 

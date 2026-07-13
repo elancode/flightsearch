@@ -503,14 +503,15 @@ def make_option(trip: TripSpec, strategy: str, offers: list[Offer],
 
 def fetch_offers(provider, trip: TripSpec, searches: list[dict],
                  parallel: bool) -> list[list[Offer]]:
-    """Price every planned search, returning offers aligned to `searches`.
+    """Price every planned search, returning RAW offers aligned to `searches`.
 
+    Constraint filtering (`Offer.passes`) is applied by the caller so it can
+    tell "the provider returned nothing" from "constraints filtered them all".
     When parallel, searches fan out over a thread pool — the DuffelProvider is
     thread-safe — so wall-clock is roughly one slow call, not the sum.
     """
     def do(s: dict) -> list[Offer]:
-        return [o for o in provider.search(trip, s["leg_indices"], s["cabin"])
-                if o.passes(trip)]
+        return provider.search(trip, s["leg_indices"], s["cabin"])
 
     if parallel and len(searches) > 1:
         with ThreadPoolExecutor(max_workers=min(8, len(searches))) as ex:
@@ -519,7 +520,8 @@ def fetch_offers(provider, trip: TripSpec, searches: list[dict],
 
 
 def run_trip(trip: TripSpec, provider, top_k: int = 3,
-             parallel: bool = False, verbose: bool = True) -> list[RankedOption]:
+             parallel: bool = False, verbose: bool = True,
+             stats: Optional[dict] = None) -> list[RankedOption]:
     n = len(trip.legs)
     uniform, mixed, _ = cabin_combos(trip)
     options: list[RankedOption] = []
@@ -527,8 +529,12 @@ def run_trip(trip: TripSpec, provider, top_k: int = 3,
 
     searches = plan_searches(trip)
     offers_by_search = fetch_offers(provider, trip, searches, parallel)
+    raw_total = passed_total = 0
 
-    for s, offers in zip(searches, offers_by_search):
+    for s, raw in zip(searches, offers_by_search):
+        offers = [o for o in raw if o.passes(trip)]
+        raw_total += len(raw)
+        passed_total += len(offers)
         idxs, cabin = s["leg_indices"], s["cabin"]
         if verbose:
             desc = " + ".join(
@@ -562,6 +568,10 @@ def run_trip(trip: TripSpec, provider, top_k: int = 3,
                 trip, "SPLIT_ONEWAY", list(combo),
                 ["separate PNRs — no misconnect protection",
                  f"{n} bookings"]))
+
+    if stats is not None:
+        stats["raw"] = raw_total
+        stats["passed"] = passed_total
 
     # Keep cheapest per (strategy, cabin signature).
     best: dict[str, RankedOption] = {}
@@ -656,12 +666,33 @@ def _log_lines(trip: TripSpec, searches: list[dict], calls_made: int,
 def run_trip_result(trip: TripSpec, provider, top_k: int = 3,
                     parallel: bool = True, mode: str = "live") -> dict:
     """Run a trip and return a JSON-serializable result for the web UI."""
-    ranked = run_trip(trip, provider, top_k, parallel=parallel, verbose=False)
+    stats: dict = {}
+    ranked = run_trip(trip, provider, top_k, parallel=parallel,
+                      verbose=False, stats=stats)
     base = naive_baseline(trip, ranked)
     base_price = base.total_price if base else None
     currency = ranked[0].offers[0].currency if ranked else trip.currency
 
     options = [_option_json(trip, o, base_price) for o in ranked]
+
+    # Diagnostic when nothing ranked: distinguish "provider returned nothing"
+    # from "constraints filtered everything out".
+    warning = None
+    if not options:
+        raw, passed = stats.get("raw", 0), stats.get("passed", 0)
+        if raw == 0:
+            warning = (
+                "No offers came back for these routes/dates. A Duffel test "
+                "token only has data for a few sandbox routes — use a live "
+                "read-write token for real routes, or try a different date.")
+        elif passed == 0:
+            warning = (
+                f"Found {raw} candidate offers, but all were filtered out by "
+                f"your constraints (max {trip.max_stops} "
+                f"stop{'s' if trip.max_stops != 1 else ''}, layover "
+                f"≤ {trip.max_layover_minutes}m). Loosen them and re-run.")
+        else:
+            warning = "No combinations ranked for this trip."
 
     # Recommended = lowest effective-cost single-PNR option (the "best pick
     # you can book on one ticket"). Matches the design's RECOMMENDED row.
@@ -689,6 +720,7 @@ def run_trip_result(trip: TripSpec, provider, top_k: int = 3,
         "baseline": baseline_json,
         "options": options,
         "recommended_index": recommended_index,
+        "warning": warning,
         "calls_made": getattr(provider, "calls_made", 0),
         "log": _log_lines(trip, searches, getattr(provider, "calls_made", 0), mode),
     }
