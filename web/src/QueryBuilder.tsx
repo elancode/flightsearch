@@ -5,7 +5,6 @@ import {
   CABIN_META,
   type Cabin,
   type Leg,
-  type Mode,
   type QueryState,
 } from './types'
 import { computePlan, validate, legRole } from './planner'
@@ -33,21 +32,6 @@ const SEED: QueryState = {
   ],
   constraints: { maxStops: 1, maxLayover: 240, passengers: 1, currency: 'USD' },
 }
-
-const MODES: Record<
-  Mode,
-  { run: string; token: string; dot: string; primary: boolean }
-> = {
-  mock: { run: 'Run (mock prices)', token: 'synthetic prices · no token needed', dot: 'var(--muted)', primary: true },
-  dry: { run: 'Preview call plan', token: 'plan only · no calls sent', dot: 'var(--muted)', primary: false },
-  live: { run: 'Run search', token: 'duffel_live_••••••4a2f · authorized', dot: 'var(--pos)', primary: true },
-}
-
-const MODE_BTNS: { key: Mode; label: string }[] = [
-  { key: 'mock', label: '--mock' },
-  { key: 'dry', label: '--dry-run' },
-  { key: 'live', label: 'live' },
-]
 
 const emptyLeg = (): Leg => ({
   origin: '',
@@ -97,28 +81,19 @@ export function QueryBuilder({
   const plan = useMemo(() => computePlan(st.legs), [st.legs])
   const { errs, valid } = useMemo(() => validate(st.legs), [st.legs])
 
-  const mi = MODES[st.mode]
   const n = st.legs.length
   const errText = errs.join(' · ')
 
-  const runStyle = mi.primary
-    ? {
-        border: 'none',
-        background: valid ? 'var(--accent)' : 'var(--line2)',
-        color: '#fff',
-        cursor: valid ? 'pointer' : 'not-allowed',
-      }
-    : {
-        border: '1px solid var(--accent)',
-        background: 'var(--surface)',
-        color: 'var(--accent)',
-        cursor: 'pointer',
-      }
+  const runStyle = {
+    border: 'none',
+    background: valid ? 'var(--accent)' : 'var(--line2)',
+    color: '#fff',
+    cursor: valid ? 'pointer' : 'not-allowed',
+  }
 
   const onRunClick = () => {
     if (!valid || loading) return
-    // dry-run sends no calls — the plan is already live in the aside.
-    if (st.mode !== 'dry') onRun(st)
+    onRun(st)
   }
 
   return (
@@ -131,17 +106,19 @@ export function QueryBuilder({
           </span>
           <span style={{ fontSize: 12, color: 'var(--faint)' }}>new search</span>
         </div>
-        <div className="qb-mode" role="tablist" aria-label="run mode">
-          {MODE_BTNS.map((m) => (
-            <button
-              key={m.key}
-              className={st.mode === m.key ? 'active' : ''}
-              onClick={() => setSt((s) => ({ ...s, mode: m.key }))}
-            >
-              {m.label}
-            </button>
-          ))}
-        </div>
+        <span
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontFamily: 'var(--mono)',
+            fontSize: 11.5,
+            color: 'var(--pos)',
+          }}
+        >
+          <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--pos)' }} />
+          LIVE · duffel
+        </span>
       </div>
 
       <div className="split-body">
@@ -390,23 +367,21 @@ export function QueryBuilder({
           {/* run */}
           <div className="aside-card">
             <div className="run-status">
-              <span
-                style={{ width: 8, height: 8, borderRadius: '50%', background: mi.dot }}
-              />
-              {mi.token}
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--pos)' }} />
+              live · Duffel pricing
             </div>
             <button
               className="run-btn"
               style={{ ...runStyle, ...(loading ? { cursor: 'wait', opacity: 0.85 } : null) }}
               onClick={onRunClick}
-              disabled={(mi.primary && !valid) || loading}
+              disabled={!valid || loading}
             >
-              <span>{loading ? 'Searching…' : mi.run}</span>
+              <span>{loading ? 'Searching…' : 'Run search'}</span>
               <span className="calls">{plan.total} calls</span>
             </button>
             {errText && <div className="run-err">⚠ {errText}</div>}
             {apiError && !errText && <div className="run-err">⚠ {apiError}</div>}
-            {st.mode === 'live' && !errText && !apiError && (
+            {!errText && !apiError && (
               <div className="run-hint">
                 Runs real Duffel pricing · needs DUFFEL_ACCESS_TOKEN on the server
               </div>
