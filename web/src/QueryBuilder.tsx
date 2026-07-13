@@ -30,7 +30,10 @@ const SEED: QueryState = {
       comfort: { PREMIUM_ECONOMY: 250 },
     },
   ],
-  constraints: { maxStops: 1, maxLayover: 240, passengers: 1, currency: 'USD' },
+  // Layover cap is generous by default: long-haul connections routinely run
+  // 4-8h, and a 240m cap filters out nearly every economy/premium itinerary
+  // (leaving only whichever cabin happens to have a short-layover routing).
+  constraints: { maxStops: 1, maxLayover: 600, passengers: 1, currency: 'USD' },
 }
 
 const emptyLeg = (): Leg => ({
