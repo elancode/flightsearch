@@ -100,6 +100,7 @@ class Segment:
     arrive: str
     cabin: str
     duration: Optional[str] = None  # Duffel per-segment ISO-8601 duration
+    carrier_name: Optional[str] = None  # marketing airline name
 
 
 @dataclass
@@ -126,6 +127,24 @@ class PricedItinerary:
     def route_str(self) -> str:
         pts = [self.segments[0].origin] + [s.destination for s in self.segments]
         return "-".join(pts)
+
+    def path_str(self) -> str:
+        """Full routing incl. connections, e.g. 'SFO → EWR → TLV'."""
+        pts = [self.segments[0].origin] + [s.destination for s in self.segments]
+        return " → ".join(pts)
+
+    def stop_codes(self) -> list[str]:
+        """Connecting airport codes (empty for a nonstop)."""
+        return [s.destination for s in self.segments[:-1]]
+
+    def airlines(self) -> list[str]:
+        """Distinct marketing airline names (falling back to IATA code)."""
+        out: list[str] = []
+        for s in self.segments:
+            name = s.carrier_name or s.carrier
+            if name not in out:
+                out.append(name)
+        return out
 
     def flights_str(self) -> str:
         return ", ".join(f"{s.carrier}{s.number}" for s in self.segments)
@@ -275,10 +294,13 @@ class DuffelProvider:
                     pax = s.get("passengers") or [{}]
                     cab = DUFFEL_CABIN.get(
                         (pax[0].get("cabin_class") or "economy"), "ECONOMY")
-                    carrier = ((s.get("marketing_carrier") or {})
-                               .get("iata_code")
+                    mkt = s.get("marketing_carrier") or {}
+                    carrier = (mkt.get("iata_code")
                                or (s.get("operating_carrier") or {})
                                .get("iata_code") or "??")
+                    carrier_name = (mkt.get("name")
+                                    or (s.get("operating_carrier") or {})
+                                    .get("name"))
                     try:
                         segs.append(Segment(
                             carrier=carrier,
@@ -290,6 +312,7 @@ class DuffelProvider:
                             arrive=s["arriving_at"],
                             cabin=cab,
                             duration=s.get("duration"),
+                            carrier_name=carrier_name,
                         ))
                     except (KeyError, TypeError):
                         ok = False
@@ -582,6 +605,9 @@ def _segments_json(trip: TripSpec, opt: RankedOption) -> list[dict]:
                 "origin": leg.origin,
                 "destination": leg.destination,
                 "route": f"{leg.origin} → {leg.destination}",
+                "path": itin.path_str(),
+                "stops_codes": itin.stop_codes(),
+                "airlines": itin.airlines(),
                 "date": leg.date,
                 "cabin": itin.min_cabin(),
                 "flights": itin.flights_str(),

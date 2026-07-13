@@ -192,10 +192,16 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
                       <div className="stack" style={{ gap: 6 }}>
                         {row.segs.map((s) => (
                           <div className="seg-line" key={s.leg}>
-                            <span style={{ color: 'var(--faint)', width: 42 }}>{s.leg}</span>
-                            <span style={{ fontWeight: 600, width: 96 }}>{s.route}</span>
-                            <span style={{ color: 'var(--muted)', width: 96 }}>{s.date}</span>
-                            <span style={{ color: 'var(--muted)' }}>{s.flight}</span>
+                            <span style={{ color: 'var(--faint)', width: 42, flex: 'none' }}>{s.leg}</span>
+                            <span style={{ fontWeight: 600, minWidth: 118 }}>{s.path}</span>
+                            {s.via.length === 0 && (
+                              <span style={{ color: 'var(--faint)' }}>nonstop</span>
+                            )}
+                            {s.airline && (
+                              <span style={{ color: 'var(--ink)' }}>{s.airline}</span>
+                            )}
+                            <span style={{ color: 'var(--faint)' }}>{s.flight}</span>
+                            <span style={{ color: 'var(--muted)' }}>{s.date}</span>
                             <span
                               style={{
                                 marginLeft: 'auto',
@@ -203,12 +209,13 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
                                 alignItems: 'center',
                                 gap: 5,
                                 fontWeight: 500,
+                                flex: 'none',
                               }}
                             >
                               <Dot color={s.dot} />
                               {s.cabAbbr}
                             </span>
-                            <span style={{ color: 'var(--faint)', width: 150, textAlign: 'right' }}>
+                            <span style={{ color: 'var(--faint)', width: 130, textAlign: 'right', flex: 'none' }}>
                               {s.note}
                             </span>
                           </div>

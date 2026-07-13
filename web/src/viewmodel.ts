@@ -23,6 +23,9 @@ export interface ApiSeg {
   origin: string
   destination: string
   route: string
+  path?: string
+  stops_codes?: string[]
+  airlines?: string[]
   date: string
   cabin: Cabin
   flights: string
@@ -91,9 +94,12 @@ export interface Row {
 export interface Seg {
   leg: string
   route: string
+  path: string // routing incl. connections, e.g. "SFO → EWR → TLV"
+  via: string[] // connecting airport codes (empty for nonstop)
+  airline: string // marketing airline name(s)
   date: string
   note: string
-  flight: string
+  flight: string // flight numbers, e.g. "UA788, UA1656"
   cab: Cabin
   cabAbbr: string
   dot: string
@@ -187,9 +193,12 @@ function segFrom(s: ApiSeg): Seg {
   return {
     leg: s.leg,
     route: s.route,
+    path: s.path ?? s.route,
+    via: s.stops_codes ?? [],
+    airline: (s.airlines ?? []).join(' / '),
     date: s.date,
     note: s.note,
-    flight: s.flights + (s.stops === 0 ? ' · nonstop' : ` · ${s.stops} stop`),
+    flight: s.flights,
     cab: s.cabin,
     cabAbbr: meta.abbr,
     dot: meta.color,

@@ -77,32 +77,3 @@ export function SpecLegCardWide({ leg }: { leg: SpecLeg }) {
   )
 }
 
-/** Compact spec card — the slim rail (1c Benchmark). */
-export function SpecLegCardSlim({ leg }: { leg: SpecLeg }) {
-  const priced = leg.cabins.filter((c) => c.comfort > 0)
-  const money =
-    priced.map((c) => `${c.abbr} $${c.comfort}`).join(' / ') || 'ECO $0'
-  return (
-    <div
-      style={{
-        border: '1px solid var(--line)',
-        background: 'var(--surface)',
-        borderRadius: 8,
-        padding: 11,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-      }}
-    >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 14, fontWeight: 600 }}>{leg.route}</span>
-        <span style={{ fontFamily: 'var(--mono)', fontSize: 9.5, color: 'var(--faint)' }}>
-          {leg.role}
-        </span>
-      </div>
-      <span style={{ fontFamily: 'var(--mono)', fontSize: 10.5, color: 'var(--muted)' }}>
-        {leg.date} · {money}
-      </span>
-    </div>
-  )
-}
