@@ -690,9 +690,9 @@ def run_trip_result(trip: TripSpec, provider, top_k: int = 3,
         raw, passed = stats.get("raw", 0), stats.get("passed", 0)
         if raw == 0:
             warning = (
-                "No offers came back for these routes/dates. A Duffel test "
-                "token only has data for a few sandbox routes — use a live "
-                "read-write token for real routes, or try a different date.")
+                "No offers came back for these routes/dates. Try a different "
+                "date or loosen constraints. (If you're on a Duffel test "
+                "token, only a few sandbox routes have data.)")
         elif passed == 0:
             warning = (
                 f"Found {raw} candidate offers, but all were filtered out by "

@@ -27,6 +27,8 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
   const legCount = view.spec.legs.length
   const baseKind =
     legCount === 1 ? 'one-way' : legCount === 2 ? 'uniform round-trip' : 'uniform multi-city'
+  const tripWord =
+    legCount === 1 ? 'one-way' : legCount === 2 ? 'round-trip' : 'multi-city itinerary'
 
   return (
     <div className="app-card">
@@ -125,8 +127,9 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
             </div>
           ) : (
             <div className="res-warning">
-              No naive baseline priced (common with a Duffel test token) — savings vs. baseline
-              unavailable.
+              No naive baseline priced — the top-cabin {tripWord} an OTA would price didn&rsquo;t
+              survive your constraints, so savings vs. baseline are unavailable. A longer max
+              layover or an extra stop usually brings it back.
             </div>
           )}
 
