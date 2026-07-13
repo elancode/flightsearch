@@ -68,6 +68,7 @@ export interface Row {
   strat: string
   stratColor: string
   cabins: Cabin[]
+  flow: { abbr: string; dot: string }[] // per-leg cabin sequence (any # legs)
   c1abbr: string
   c1dot: string
   c2abbr: string
@@ -159,8 +160,13 @@ function makeRow(
 ): Row {
   const [c1, c2] = cabinsFlow(o.cabins)
   const segs = (o.segments ?? []).map(segFrom)
+  const flow = o.cabins.map((c) => {
+    const m = CABIN_META[c] ?? CABIN_META.ECONOMY
+    return { abbr: m.abbr, dot: m.color }
+  })
   return {
     segs,
+    flow,
     links: buildLinks(segs, o.links ?? []),
     rank,
     strat: o.strategy,

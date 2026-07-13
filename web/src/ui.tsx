@@ -42,6 +42,22 @@ export function CabinTag({
   )
 }
 
+/** Per-leg cabin sequence for any number of legs, e.g. BUS → ECO → PRM. */
+export function CabinSeq({ flow }: { flow: { abbr: string; dot: string }[] }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+      {flow.map((c, i) => (
+        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          {i > 0 && (
+            <span style={{ color: 'var(--faint)', fontFamily: 'var(--mono)', fontSize: 11 }}>→</span>
+          )}
+          <CabinTag abbr={c.abbr} dot={c.dot} />
+        </span>
+      ))}
+    </span>
+  )
+}
+
 /** cabin → cabin flow, e.g. BUS → ECO. */
 export function CabinFlow({
   c1abbr,
