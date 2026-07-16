@@ -26,6 +26,8 @@ export interface ApiSeg {
   path?: string
   stops_codes?: string[]
   airlines?: string[]
+  mixed?: boolean
+  segment_cabins?: { route: string; cabin: Cabin }[]
   date: string
   cabin: Cabin
   flights: string
@@ -68,7 +70,7 @@ export interface Row {
   strat: string
   stratColor: string
   cabins: Cabin[]
-  flow: { abbr: string; dot: string }[] // per-leg cabin sequence (any # legs)
+  flow: CabinChip[] // per-leg cabin sequence (any # legs), with mixed markers
   c1abbr: string
   c1dot: string
   c2abbr: string
@@ -92,12 +94,20 @@ export interface Row {
   links: { label: string; href: string }[]
 }
 
+export interface CabinChip {
+  abbr: string
+  dot: string
+  mixed?: boolean // this leg's segments span >1 cabin
+}
+
 export interface Seg {
   leg: string
   route: string
   path: string // routing incl. connections, e.g. "SFO → EWR → TLV"
   via: string[] // connecting airport codes (empty for nonstop)
   airline: string // marketing airline name(s)
+  mixed: boolean // segments within this leg span >1 cabin
+  segCabins: { route: string; abbr: string; dot: string }[] // per physical segment
   date: string
   note: string
   flight: string // flight numbers, e.g. "UA788, UA1656"
@@ -160,9 +170,9 @@ function makeRow(
 ): Row {
   const [c1, c2] = cabinsFlow(o.cabins)
   const segs = (o.segments ?? []).map(segFrom)
-  const flow = o.cabins.map((c) => {
+  const flow: CabinChip[] = o.cabins.map((c, i) => {
     const m = CABIN_META[c] ?? CABIN_META.ECONOMY
-    return { abbr: m.abbr, dot: m.color }
+    return { abbr: m.abbr, dot: m.color, mixed: segs[i]?.mixed ?? false }
   })
   return {
     segs,
@@ -202,6 +212,11 @@ function segFrom(s: ApiSeg): Seg {
     path: s.path ?? s.route,
     via: s.stops_codes ?? [],
     airline: (s.airlines ?? []).join(' / '),
+    mixed: !!s.mixed,
+    segCabins: (s.segment_cabins ?? []).map((sc) => {
+      const cm = CABIN_META[sc.cabin] ?? CABIN_META.ECONOMY
+      return { route: sc.route, abbr: cm.abbr, dot: cm.color }
+    }),
     date: s.date,
     note: s.note,
     flight: s.flights,

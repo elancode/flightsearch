@@ -124,6 +124,26 @@ class PricedItinerary:
     def min_cabin(self) -> str:
         return min((s.cabin for s in self.segments), key=cabin_rank)
 
+    def dominant_cabin(self) -> str:
+        """The cabin that defines this leg: the one on its longest segment.
+
+        A connecting leg flown business on the long-haul segment and economy
+        on the short hop is what this tool exists to surface — valuing it by
+        the *lowest* cabin (min_cabin) would hide exactly that deal. Ties
+        break to the higher cabin.
+        """
+        best_key = None
+        best_cabin = self.segments[0].cabin if self.segments else "ECONOMY"
+        for s in self.segments:
+            key = (parse_iso_duration(s.duration) or 0, cabin_rank(s.cabin))
+            if best_key is None or key > best_key:
+                best_key, best_cabin = key, s.cabin
+        return best_cabin
+
+    def is_mixed(self) -> bool:
+        """True if the segments within this leg are not all the same cabin."""
+        return len({s.cabin for s in self.segments}) > 1
+
     def route_str(self) -> str:
         pts = [self.segments[0].origin] + [s.destination for s in self.segments]
         return "-".join(pts)
@@ -195,7 +215,7 @@ class Offer:
         return True
 
     def cabins_tuple(self) -> tuple[str, ...]:
-        return tuple(itin.min_cabin() for itin in self.itineraries)
+        return tuple(itin.dominant_cabin() for itin in self.itineraries)
 
 
 # ---------------------------------------------------------------------------
@@ -425,7 +445,7 @@ class RankedOption:
         cabins = ["-"] * n_legs
         for off in self.offers:
             for itin, leg_idx in zip(off.itineraries, off.leg_indices):
-                cabins[leg_idx] = itin.min_cabin()
+                cabins[leg_idx] = itin.dominant_cabin()
         return cabins
 
     def single_pnr(self) -> bool:
@@ -443,7 +463,7 @@ def comfort_credit(trip: TripSpec, offers: list[Offer]) -> float:
     for off in offers:
         for itin, leg_idx in zip(off.itineraries, off.leg_indices):
             credit += trip.legs[leg_idx].comfort_value.get(
-                itin.min_cabin(), 0.0)
+                itin.dominant_cabin(), 0.0)
     return credit
 
 
@@ -491,9 +511,9 @@ def make_option(trip: TripSpec, strategy: str, offers: list[Offer],
     links = []
     for off in offers:
         for itin, leg_idx in zip(off.itineraries, off.leg_indices):
-            cabins[leg_idx] = itin.min_cabin()
+            cabins[leg_idx] = itin.dominant_cabin()
             links.append(google_flights_link(trip.legs[leg_idx],
-                                             itin.min_cabin()))
+                                             itin.dominant_cabin()))
     return RankedOption(
         strategy=strategy,
         label=f"{strategy}: " + "/".join(c[:4] for c in cabins),
@@ -627,7 +647,12 @@ def _segments_json(trip: TripSpec, opt: RankedOption) -> list[dict]:
                 "stops_codes": itin.stop_codes(),
                 "airlines": itin.airlines(),
                 "date": leg.date,
-                "cabin": itin.min_cabin(),
+                "cabin": itin.dominant_cabin(),
+                "mixed": itin.is_mixed(),
+                "segment_cabins": [
+                    {"route": f"{s.origin} → {s.destination}", "cabin": s.cabin}
+                    for s in itin.segments
+                ],
                 "flights": itin.flights_str(),
                 "stops": itin.stops(),
                 "note": note,

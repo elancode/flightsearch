@@ -214,13 +214,19 @@ export function Workbench({ view, onEdit }: { view: ResultsView; onEdit: () => v
                                 marginLeft: 'auto',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: 5,
+                                gap: 6,
                                 fontWeight: 500,
                                 flex: 'none',
                               }}
                             >
-                              <Dot color={s.dot} />
-                              {s.cabAbbr}
+                              {s.mixed && s.segCabins.length > 1 ? (
+                                <CabinSeq flow={s.segCabins} />
+                              ) : (
+                                <>
+                                  <Dot color={s.dot} />
+                                  {s.cabAbbr}
+                                </>
+                              )}
                             </span>
                             <span style={{ color: 'var(--faint)', width: 130, textAlign: 'right', flex: 'none' }}>
                               {s.note}

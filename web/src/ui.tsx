@@ -42,8 +42,35 @@ export function CabinTag({
   )
 }
 
-/** Per-leg cabin sequence for any number of legs, e.g. BUS → ECO → PRM. */
-export function CabinSeq({ flow }: { flow: { abbr: string; dot: string }[] }) {
+/** A small "mixed cabins across the stopover" marker. */
+export function MixTag() {
+  return (
+    <span
+      title="mixed cabins across the stopover (premium on the long segment, economy on the hop)"
+      style={{
+        fontFamily: 'var(--mono)',
+        fontSize: 9,
+        fontWeight: 600,
+        color: 'var(--warn)',
+        background: 'var(--warn-tint)',
+        border: '1px solid var(--warn)',
+        borderRadius: 4,
+        padding: '0 4px',
+        letterSpacing: '0.04em',
+      }}
+    >
+      MIX
+    </span>
+  )
+}
+
+/** Per-leg cabin sequence for any number of legs, e.g. BUS → ECO → PRM.
+ *  A leg whose segments span >1 cabin (mixed across a stopover) gets a MIX tag. */
+export function CabinSeq({
+  flow,
+}: {
+  flow: { abbr: string; dot: string; mixed?: boolean }[]
+}) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
       {flow.map((c, i) => (
@@ -52,6 +79,7 @@ export function CabinSeq({ flow }: { flow: { abbr: string; dot: string }[] }) {
             <span style={{ color: 'var(--faint)', fontFamily: 'var(--mono)', fontSize: 11 }}>→</span>
           )}
           <CabinTag abbr={c.abbr} dot={c.dot} />
+          {c.mixed && <MixTag />}
         </span>
       ))}
     </span>
