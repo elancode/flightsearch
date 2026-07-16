@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, type Dispatch, type SetStateAction } from 'react'
 import './querybuilder.css'
 import {
   CABINS,
@@ -9,7 +9,7 @@ import {
 } from './types'
 import { computePlan, validate, legRole } from './planner'
 
-const SEED: QueryState = {
+export const SEED: QueryState = {
   name: 'SFO–TLV, premium eastbound overnight',
   mode: 'live',
   legs: [
@@ -45,19 +45,33 @@ const emptyLeg = (): Leg => ({
   comfort: {},
 })
 
+// A clean slate: one empty leg, default constraints.
+export const blankQuery = (): QueryState => ({
+  name: '',
+  mode: 'live',
+  legs: [emptyLeg()],
+  constraints: { maxStops: 1, maxLayover: 600, passengers: 1, currency: 'USD' },
+})
+
 // Auto-uppercase, strip non-letters, cap at 3 chars — for IATA code inputs.
 const up = (s: string) => s.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 3)
 
 export function QueryBuilder({
+  state,
+  setState,
   onRun,
   loading,
   apiError,
 }: {
+  state: QueryState
+  setState: Dispatch<SetStateAction<QueryState>>
   onRun: (state: QueryState) => void
   loading: boolean
   apiError: string | null
 }) {
-  const [st, setSt] = useState<QueryState>(SEED)
+  // Controlled by App so the search survives navigating to results and back.
+  const st = state
+  const setSt = setState
 
   const upLeg = (i: number, fn: (l: Leg) => Leg) =>
     setSt((s) => ({ ...s, legs: s.legs.map((l, j) => (j === i ? fn(l) : l)) }))
@@ -107,7 +121,13 @@ export function QueryBuilder({
           <span className="brand">
             itsadeal<span className="dot-ai">.ai</span>
           </span>
-          <span style={{ fontSize: 12, color: 'var(--faint)' }}>new search</span>
+          <button
+            className="clear-btn"
+            onClick={() => setSt(blankQuery())}
+            title="Clear the form and start a new search"
+          >
+            ↺ clear
+          </button>
         </div>
         <span
           style={{

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { QueryBuilder } from './QueryBuilder'
+import { QueryBuilder, SEED } from './QueryBuilder'
 import { Workbench } from './results/Workbench'
 import { runSearch } from './api'
 import { mapResult, type ResultsView } from './viewmodel'
@@ -10,6 +10,9 @@ type View = '2a' | '1a'
 
 export function App() {
   const [view, setView] = useState<View>('2a')
+  // The query lives here (not inside QueryBuilder) so it survives navigating
+  // to the results and back — clicking Edit returns to the same search.
+  const [query, setQuery] = useState<QueryState>(SEED)
   const [results, setResults] = useState<ResultsView | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -36,7 +39,15 @@ export function App() {
   return (
     <div className="page">
       <div className="screen">
-        {view === '2a' && <QueryBuilder onRun={handleRun} loading={loading} apiError={error} />}
+        {view === '2a' && (
+          <QueryBuilder
+            state={query}
+            setState={setQuery}
+            onRun={handleRun}
+            loading={loading}
+            apiError={error}
+          />
+        )}
         {view === '1a' && <Workbench view={shown} onEdit={goEdit} />}
       </div>
     </div>

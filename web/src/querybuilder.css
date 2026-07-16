@@ -1,5 +1,20 @@
 /* Screen 2a — Query builder. */
 
+.clear-btn {
+  border: 1px solid var(--line2);
+  background: var(--surface);
+  color: var(--muted);
+  border-radius: 6px;
+  padding: 3px 9px;
+  font-family: var(--mono);
+  font-size: 11px;
+  cursor: pointer;
+}
+.clear-btn:hover {
+  border-color: var(--warn);
+  color: var(--warn);
+}
+
 .qb-form {
   flex: 1;
   padding: 22px 24px;
