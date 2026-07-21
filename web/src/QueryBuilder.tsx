@@ -30,11 +30,22 @@ export const SEED: QueryState = {
       comfort: { PREMIUM_ECONOMY: 250 },
     },
   ],
-  // Layover cap is generous by default: long-haul connections routinely run
-  // 4-8h, and a 240m cap filters out nearly every economy/premium itinerary
-  // (leaving only whichever cabin happens to have a short-layover routing).
-  constraints: { maxStops: 1, maxLayover: 600, passengers: 1, currency: 'USD' },
+  // max layover is a user setting (see LAYOVER_OPTIONS). 12h by default;
+  // pick "20h · overnight OK" or "no limit" to allow overnight stopovers.
+  constraints: { maxStops: 1, maxLayover: 720, passengers: 1, currency: 'USD' },
 }
+
+// Preset options for the max-layover setting. NO_LIMIT is a large sentinel so
+// the backend's `m > max_layover` check never trips.
+export const NO_LAYOVER_LIMIT = 9999
+const LAYOVER_OPTIONS: { value: number; label: string }[] = [
+  { value: 120, label: '2h' },
+  { value: 240, label: '4h' },
+  { value: 480, label: '8h' },
+  { value: 720, label: '12h' },
+  { value: 1200, label: '20h · overnight OK' },
+  { value: NO_LAYOVER_LIMIT, label: 'no limit' },
+]
 
 const emptyLeg = (): Leg => ({
   origin: '',
@@ -50,7 +61,7 @@ export const blankQuery = (): QueryState => ({
   name: '',
   mode: 'live',
   legs: [emptyLeg()],
-  constraints: { maxStops: 1, maxLayover: 600, passengers: 1, currency: 'USD' },
+  constraints: { maxStops: 1, maxLayover: 720, passengers: 1, currency: 'USD' },
 })
 
 // Auto-uppercase, strip non-letters, cap at 3 chars — for IATA code inputs.
@@ -320,14 +331,23 @@ export function QueryBuilder({
                 </select>
               </div>
               <div className="leg-field">
-                <span className="field-hint">max layover (min)</span>
-                <input
+                <span className="field-hint">max layover</span>
+                <select
                   className="field field-mono"
-                  style={{ width: 120 }}
-                  type="number"
                   value={st.constraints.maxLayover}
-                  onChange={(e) => setCon('maxLayover', parseInt(e.target.value || '0', 10) || 0)}
-                />
+                  onChange={(e) => setCon('maxLayover', parseInt(e.target.value, 10))}
+                >
+                  {LAYOVER_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>
+                      {o.label}
+                    </option>
+                  ))}
+                  {!LAYOVER_OPTIONS.some((o) => o.value === st.constraints.maxLayover) && (
+                    <option value={st.constraints.maxLayover}>
+                      {st.constraints.maxLayover}m
+                    </option>
+                  )}
+                </select>
               </div>
               <div className="leg-field">
                 <span className="field-hint">passengers</span>
